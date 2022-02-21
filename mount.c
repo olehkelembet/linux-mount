@@ -68,8 +68,8 @@ static bool  generateMountPointString(Mount* self)
     {
       if(self->mountPointString)
       {
-	 free(self->mountPointString)
-	 self->mountPointString = strdup(mountPoint);
+	    free(self->mountPointString);
+	    self->mountPointString = strdup(mountPoint);
 	 return true;
       }
     }
@@ -123,7 +123,7 @@ static int mountDevice(Mount* self)
 
 	if (mkdir(self->mountPoint, S_IRWXU | S_IRGRP | S_IXGRP) == -1 &&
 			errno != EEXIST) {
-		error(0, errno, "Failed to create mount point %s\n", self->mountPoint);
+        printf("Failed to create mount point %s\n", self->mountPoint);
 	//log err
 	//pop message "Failed to create mount point"
 	}
@@ -212,9 +212,10 @@ static void unmountDevice(Mount* self)
 
 static void log(const char* message)
 {
-	struct tm *t = gmtime(time(NULL));
+    time_t timer = time(NULL);
+	struct tm *t = gmtime(&timer);
 	printf("[%.2d/%.2d/%.2d %.2d:%.2d:%.2d] : %s\n", t->tm_mday, t->tm_mon,
-			1900 + t->tm_year, t->tm_hour, t->tm_min, t->tm_sec);
+			1900 + t->tm_year, t->tm_hour, t->tm_min, t->tm_sec, message);
 }
 
 
@@ -275,9 +276,9 @@ void loop(Mount* self)
 	if (ret > 0 && FD_ISSET(fd, &fds))
 	{
 	    self->udevice = udev_monitor_receive_device(self->umon);
-	    char*  devtype = udev_device_get_devtype(self->udevice);
-	    char*  action = udev_device_get_action(self->udevice);
-	    char*  devnode = udev_device_get_devnode(self->udevice);
+	    char*  devtype = (char*)udev_device_get_devtype(self->udevice);
+	    char*  action = (char*)udev_device_get_action(self->udevice);
+	    char*  devnode = (char*)udev_device_get_devnode(self->udevice);
 	    if(strcmp(devtype, "partition")==0 && strcmp(action, "add") == 0)
 	    {
 		//printf("A new partition detected at: %s.\nTrying to mount to: %s.",devnode,self->DEFAULT_MOUNT_PATH);

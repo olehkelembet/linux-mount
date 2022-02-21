@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <pwd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -16,7 +17,7 @@
 #include <assert.h>
 
 
-typedef struct{
+typedef struct Mount {
 
   struct udev *udev;
   struct udev_monitor *umon;
