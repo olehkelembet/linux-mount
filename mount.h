@@ -42,10 +42,14 @@ typedef struct Mount {
   bool (*generateMountPointString)(struct Mount*);
   bool (*isMounted)(struct Mount*, const char*);
   int (*mountDevice)(struct Mount*);
-  bool (*unmountDevice)(struct Mount*);
+  void (*unmountDevice)(struct Mount*);
   void (*log)(const char*);
   void (*daemonize)(struct Mount*);
   void (*loop)(struct Mount*);
 
 }Mount;
+
+
+void create(Mount* self);
+void destroy(Mount* self);
 
