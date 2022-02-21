@@ -2,7 +2,7 @@
 
 
 
-static bool isRoot(void)
+static inline bool isRoot(void)
 {
     return (geteuid() == 0);
 }
@@ -27,7 +27,10 @@ static bool isMountPoint(const char *path)
     }
     for(; partition; partition = getmntent(mtab))
     {
-	if (strcmp(partition->mnt_dir, path) == 0) break;
+	  if (strcmp(partition->mnt_dir, path) == 0)
+      {
+        break;
+      }
     }
 	endmntent(mtab);
 
@@ -45,8 +48,8 @@ static bool  generateMountPointString(Mount* self)
     {
       if(!(propertyValue = udev_device_get_property_value(self->udevice, "ID_MODEL")))
       {
-	//log(can't get usb name)
-	propertyValue = self->DEFAULT_MOUNT_NAME;
+	    //log(can't get usb name)
+	    propertyValue = self->DEFAULT_MOUNT_NAME;
       }
     }
 
@@ -70,7 +73,7 @@ static bool  generateMountPointString(Mount* self)
       {
 	    free(self->mountPointString);
 	    self->mountPointString = strdup(mountPoint);
-	 return true;
+	    return true;
       }
     }
 
@@ -91,23 +94,19 @@ static bool isMounted(Mount* self, const char* devnode)
 
 	if ((mtab = setmntent("/etc/mtab", "r")))
     {
-	for(
-	    partition = getmntent(mtab);
-	    partition && !ret;
-	    partition = getmntent(mtab)
-	   )
-	{
-	    if (strcmp(partition->mnt_fsname, devnode) == 0)
-	    {
-			ret = true;
-			if (self->mountPoint)
+	  for(partition = getmntent(mtab); partition && !ret; partition = getmntent(mtab))
+	  {
+	      if (strcmp(partition->mnt_fsname, devnode) == 0)
 	      {
-				self->mountPoint = strdup(partition->mnt_dir);
+	  		ret = true;
+	  		if (self->mountPoint == NULL)
+	        {
+	  			self->mountPoint = strdup(partition->mnt_dir);
+	        }
 	      }
-	    }
-	}
+	  }
 
-		endmntent(mtab);
+	  endmntent(mtab);
 	}
 
 	return ret;
@@ -121,16 +120,18 @@ static int mountDevice(Mount* self)
 	int status = 0;
 	pid_t p;
 
-	if (mkdir(self->mountPoint, S_IRWXU | S_IRGRP | S_IXGRP) == -1 &&
-			errno != EEXIST) {
-        printf("Failed to create mount point %s\n", self->mountPoint);
-	//log err
-	//pop message "Failed to create mount point"
+	if (mkdir(self->mountPoint, S_IRWXU | S_IRGRP | S_IXGRP) == -1 && errno != EEXIST)
+    {
+      printf("Failed to create mount point %s\n", self->mountPoint);
+	  //log err
+	  //pop message "Failed to create mount point"
 	}
-	else {
+	else
+    {
 		p = fork();
 
-		if (p == -1) {
+		if (p == -1)
+        {
 			perror("fork syscall error");
 			fprintf(stderr, "unplug and plug you device again to retry\n");
 	    //log err
@@ -138,46 +139,46 @@ static int mountDevice(Mount* self)
 			return 1;
 		}
 		else if (p == 0)
-	{
+	    {
 		  setuid(0);
 		  perror("/sbin/mount");
-	  if( devnode && self->mountPoint)
-	  {
-	    if (mount(devnode, self->mountPoint, (fsType) ? fsType : self->DEFAULT_FS_TYPE, MS_NOATIME, NULL))
-	    {
-		if (errno == EBUSY)
-		{
-		  //log()
-		  //pop msg
-		    printf("Mountpoint is busy!");
-		}
-		else
-		{
-		  //log()
-		  //pop msg
-		    printf("Mount error: %s", strerror(errno));
-		}
-	    }
-	    else
-	    {
-	      //pop msg
-		printf("Successfully mounted to %s!", self->mountPoint);
-	    }
-	  }
-		  //exit(1);
-	  return 1;
+	      if( devnode && self->mountPoint)
+	      {
+	        if (mount(devnode, self->mountPoint, (fsType) ? fsType : self->DEFAULT_FS_TYPE, MS_NOATIME, NULL))
+	        {
+		      if (errno == EBUSY)
+		      {
+		        //log()
+		        //pop msg
+		          printf("Mountpoint is busy!");
+		      }
+		      else
+		      {
+		        //log()
+		        //pop msg
+		          printf("Mount error: %s", strerror(errno));
+		      }
+	        }
+	        else
+	        {
+	          //pop msg
+		      printf("Successfully mounted to %s!", self->mountPoint);
+	        }
+	      }
+		    //exit(1);
+	      return 1;
 		}
 
 		wait(&status);
 
 		if (status != 0)
-	{
-			fprintf(stderr, "Failed to mount %s on %s\n", devnode, self->mountPoint);
-	}
+	    {
+		  fprintf(stderr, "Failed to mount %s on %s\n", devnode, self->mountPoint);
+	    }
 		else
-	{
-			printf("Device %s successfuly mounted on %s\n", devnode, self->mountPoint);
-	}
+	    {
+	      printf("Device %s successfuly mounted on %s\n", devnode, self->mountPoint);
+	    }
 	}
 
     return 0;
@@ -191,19 +192,20 @@ static void unmountDevice(Mount* self)
 	if (isMounted(self, dev_node))
     {
 		if (self->mountPoint)
-	{
-			if (umount(self->mountPoint) == -1)
 	    {
+			if (umount(self->mountPoint) == -1)
+	        {
 				printf("Failed to unmount device %s (mount point: %s)\n", dev_node, self->mountPoint);
 			}
 			else
-	    {
+	        {
 				printf("Device %s successfuly unmounted!\nMount point was: %s)\n", dev_node, self->mountPoint);
+                printf("Trying to delete mount point catalog!");
 
 				if (rmdir(self->mountPoint) == -1)
-		{
+		        {
 					printf("Failed to delete: %s!\n", self->mountPoint);
-		}
+		        }
 			}
 		}
 	}
@@ -225,15 +227,18 @@ static void daemonize(Mount* self)
 	pid_t pid;
 
 	pid = fork();
-	if (pid == -1) {
+	if (pid == -1)
+    {
 		perror("fork() function problem.");
 		exit(EXIT_FAILURE);
 	}
-	else if (pid != 0) {
+	else if (pid != 0)
+    {
 		_exit(0);
 	}
 
-	if (setsid() == -1) {
+	if (setsid() == -1)
+    {
 		perror("setsid() function failure.");
 		exit(EXIT_FAILURE);
 	}
@@ -241,13 +246,15 @@ static void daemonize(Mount* self)
 	umask(0);
 
 	close(STDIN_FILENO);
-	if (open("/dev/null", O_RDONLY) == -1) {
+	if (open("/dev/null", O_RDONLY) == -1)
+    {
 		perror("Stdin redirect issue.");
 		exit(EXIT_FAILURE);
 	}
 
 	if ((logfd = open(self->LOGFILE, O_CREAT | O_RDWR | O_APPEND,
-			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)) == -1) {
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)) == -1)
+    {
 		perror("Logfile opening problem.");
 		exit(EXIT_FAILURE);
 	}
